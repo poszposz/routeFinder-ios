@@ -10,11 +10,12 @@ internal final class RouteAnalyzer {
 
     private enum RouteAnalysisContants {
         static let routeAnalysisStepInterval: Double = 1
-        static let startingReachRadius: Double = 30
+        static let startingReachRadius: Double = 10
+        static let endingReachRadius: Double = 20
         static let turnHeadingDifference: Double = 60
         static let routeAlignmentMaximumDistance: Double = 30
         static let softOffRouteAlignmentMaximumDistance: Double = 50
-        static let rerouteDistance: Double = 200
+        static let rerouteDistance: Double = 150
     }
 
     private enum RouteEvent {
@@ -55,7 +56,7 @@ internal final class RouteAnalyzer {
     @objc private func analyze() {
         switch currentState {
         case .navigatingToStartPoint:
-            let reachedStart = handleReachingStart()
+            let reachedStart = checkReachingStart()
             if reachedStart {
                 let location = nearestAlignedLocation()
                 currentState = .navigating(location, location.navigationRegion)
@@ -64,6 +65,11 @@ internal final class RouteAnalyzer {
                 routeAnalysisHandler(currentState, .reachStart)
             }
         case .navigating, .offRoute:
+            guard !checkReachingEnd() else {
+                currentState = .navigatingToEndPoint(route.reachEndRegion)
+                routeAnalysisHandler(currentState, .reachEnd)
+                return
+            }
             let location = nearestAlignedLocation()
             let distance = location.distanceTo(locationClient.currentLocation)
             let guidance: NavigationGuidance
@@ -75,7 +81,7 @@ internal final class RouteAnalyzer {
                 guidance = nearestGuidance()
             } else if distance >= RouteAnalysisContants.softOffRouteAlignmentMaximumDistance && distance < RouteAnalysisContants.rerouteDistance {
                 currentState = .offRoute(.hard, locationClient.currentLocation, locationClient.currentLocation.navigationRegion)
-                guidance = .rerouting
+                guidance = .getBack
             } else {
                 currentState = .offRoute(.shouldReroute, locationClient.currentLocation, locationClient.currentLocation.navigationRegion)
                 guidance = .rerouting
@@ -86,12 +92,17 @@ internal final class RouteAnalyzer {
         }
     }
 
-    private func handleReachingStart() -> Bool {
+    private func checkReachingStart() -> Bool {
         let currentLocation = locationClient.currentLocation
-        let filtered = route.routes.filter {
-            return $0.startPoint.distanceTo(currentLocation) < RouteAnalysisContants.startingReachRadius
+        let filtered = route.routes.map { $0.segments }.flatMap { $0 }.filter {
+            return $0.start.distanceTo(currentLocation) < RouteAnalysisContants.startingReachRadius
         }
         return !filtered.isEmpty
+    }
+
+    private func checkReachingEnd() -> Bool {
+        let currentLocation = locationClient.currentLocation
+        return route.endLocation.location.distanceTo(currentLocation) < RouteAnalysisContants.endingReachRadius
     }
 
     private func nearestAlignedLocation() -> CLLocationCoordinate2D {
@@ -105,9 +116,18 @@ internal final class RouteAnalyzer {
             let secondRouteWeight = (secondLocationToStart + secondLocationToEnd) / Double(route2.length)
             return firstRouteWeight < secondRouteWeight
         }
-        guard let firstRoute = sortedRoutes.first else { return route.startLocation.location }
-        currentRoute = firstRoute
-        let sortedSegments = firstRoute.segments.sorted { segment1, segment2 in
+        guard let nearestRoute = sortedRoutes.first else { return route.startLocation.location }
+        currentRoute = nearestRoute
+        var segments = nearestRoute.segments
+        if let currentRouteIndex = route.routes.index(of: nearestRoute), currentRouteIndex != 0 {
+            let previousRoute = route.routes[currentRouteIndex - 1]
+            segments.append(contentsOf: previousRoute.segments)
+            if currentRouteIndex != route.routes.count - 1 {
+                let nextRoute = route.routes[currentRouteIndex + 1]
+                segments.append(contentsOf: nextRoute.segments)
+            }
+        }
+        let sortedSegments = segments.sorted { segment1, segment2 in
             let firstLocationToStart = segment1.start.distanceTo(currentLocation)
             let firstLocationToEnd = segment1.end.distanceTo(currentLocation)
             let secondLocationToStart = segment2.start.distanceTo(currentLocation)
@@ -116,17 +136,17 @@ internal final class RouteAnalyzer {
             let secondSegmentWeight = secondLocationToStart + secondLocationToEnd
             return firstSegmentWeight < secondSegmentWeight
         }
-        guard let firstSegment = sortedSegments.first else { return firstRoute.startPoint }
-        currentSegment = firstSegment
-        let latitudeDiff = firstSegment.start.latitude - firstSegment.end.latitude
-        let longitudeDiff = firstSegment.start.longitude - firstSegment.end.longitude
-        guard longitudeDiff != 0, latitudeDiff != 0 else { return firstSegment.start }
+        guard let nearestSegment = sortedSegments.first else { return nearestRoute.startPoint }
+        currentSegment = nearestSegment
+        let latitudeDiff = nearestSegment.start.latitude - nearestSegment.end.latitude
+        let longitudeDiff = nearestSegment.start.longitude - nearestSegment.end.longitude
+        guard longitudeDiff != 0, latitudeDiff != 0 else { return nearestSegment.start }
         let latitudeChunk = latitudeDiff / 20;
         let longitudeChunk = longitudeDiff / 20;
         var distances = [(CLLocationCoordinate2D, Double)]()
         for index in 0..<20 {
-            let chunkedLatitude = firstSegment.start.latitude + (latitudeChunk * Double(index))
-            let chunkedLongitude = firstSegment.start.longitude + (longitudeChunk * Double(index))
+            let chunkedLatitude = nearestSegment.start.latitude + (latitudeChunk * Double(index))
+            let chunkedLongitude = nearestSegment.start.longitude + (longitudeChunk * Double(index))
             let chunkedLocation = CLLocationCoordinate2D(latitude: chunkedLatitude, longitude: chunkedLongitude)
             let distance = chunkedLocation.distanceTo(currentLocation)
             distances.append((chunkedLocation, distance))
@@ -134,12 +154,12 @@ internal final class RouteAnalyzer {
         let sortedDistances = distances.sorted { locationData1, locationData2 -> Bool in
             return locationData1.1 < locationData2.1
         }
-        guard let firstAligned = sortedDistances.first else { return firstSegment.start }
+        guard let firstAligned = sortedDistances.first else { return nearestSegment.start }
         return firstAligned.0
     }
 
     private func nearestGuidance() -> NavigationGuidance {
-        let nextSegments = nextTenSegments()
+        let nextSegments = nextSegmentsSet()
         guard let currentSegment = currentSegment, !nextSegments.isEmpty else { return .continueStraight }
         guard !nextSegments.isEmpty else {
             return .continueStraight
@@ -149,6 +169,9 @@ internal final class RouteAnalyzer {
         }
         var distance = currentSegment.length
         for segment in nextSegments {
+            guard segment.length > 1 else {
+                break
+            }
             distance = distance + segment.length;
             let headingDiff = currentSegment.heading - segment.heading
             // Avoiding heading diff above or below 120 to overcome the bug with some reversed segments.
@@ -161,26 +184,23 @@ internal final class RouteAnalyzer {
         return .continueStraight
     }
 
-    private func nextTenSegments() -> [Segment] {
-        guard let currentRoute = currentRoute, let currentSegment = currentSegment else { return [] }
-        var segments = [Segment]()
-        if let indexInCurrentRoute = currentRoute.segments.index(where: { $0 == currentSegment }) {
-            let segmentsInCurrentRoute = currentRoute.segments.suffix(from: indexInCurrentRoute)
-            segments.append(contentsOf: segmentsInCurrentRoute)
+    private func nextSegmentsSet() -> [Segment] {
+        guard
+            let currentRoute = currentRoute,
+            let currentSegment = currentSegment,
+            let currentRouteIndex = route.routes.index(of: currentRoute),
+            let currentSegmentIndex = currentRoute.segments.index(of: currentSegment)
+        else {
+            return []
         }
-        if var indexOfCurrentRoute = route.routes.index(where: { $0 == currentRoute }) {
-            indexOfCurrentRoute += 1;
-            while segments.count <= 10 {
-                if indexOfCurrentRoute == route.routes.count - 1 {
-                    return segments
-                }
-                let nextRoute = route.routes[indexOfCurrentRoute];
-                if nextRoute.segments.count >= 10 - segments.count {
-                    segments.append(contentsOf: nextRoute.segments.prefix(upTo: 10 - segments.count))
-                } else {
-                    segments.append(contentsOf: nextRoute.segments)
-                }
-                indexOfCurrentRoute += 1;
+        var segments = [Segment]()
+        let currentRouteSegments = currentRoute.segments.suffix(from: currentSegmentIndex + 1)
+        segments.append(contentsOf: currentRouteSegments)
+        let leftOverRoutes = route.routes.suffix(from: currentRouteIndex + 1)
+        for route in leftOverRoutes {
+            segments.append(contentsOf: route.segments)
+            if segments.count >= 10 {
+                return segments
             }
         }
         return segments

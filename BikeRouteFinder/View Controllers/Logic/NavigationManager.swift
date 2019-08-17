@@ -77,6 +77,8 @@ internal final class NavigationManager {
 
     private var routeAnalyzer: RouteAnalyzer?
 
+    private var isRerouting = false
+
     var allowsLocationChange = true
 
     let regionChangeHandler: (MKCoordinateRegion) -> ()
@@ -193,6 +195,7 @@ internal final class NavigationManager {
                     self?.terminateNavigation()
                     self?.routeDrawHandler(.route(detailedRoute.routes))
                     self?.startNavigation(route: detailedRoute)
+                    self?.isRerouting = false
                 } else {
                     self?.state = .preNavigation(detailedRoute)
                 }
@@ -223,7 +226,10 @@ internal final class NavigationManager {
                     self.guidanceChangeHandler(.getBack)
                 } else if style == .shouldReroute {
                     self.guidanceChangeHandler(.rerouting)
-                    self.downloadRoute(location: self.locationClient.currentLocation, rerouting: true)
+                    if !self.isRerouting {
+                        self.downloadRoute(location: self.locationClient.currentLocation, rerouting: true)
+                        self.isRerouting = true
+                    }
                 }
             }
         }
