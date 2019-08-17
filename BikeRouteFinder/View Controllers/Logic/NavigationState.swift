@@ -14,5 +14,5 @@ enum NavigationState {
 }
 
 enum OffRouteStyle {
-    case soft, hard
+    case soft, hard, shouldReroute
 }

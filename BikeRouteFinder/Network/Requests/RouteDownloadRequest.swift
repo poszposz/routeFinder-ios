@@ -4,8 +4,7 @@
 //
 
 import Foundation
-
-import Foundation
+import CoreLocation
 
 internal struct RouteDownloadRequest: APIRequest {
 
@@ -16,15 +15,27 @@ internal struct RouteDownloadRequest: APIRequest {
     }
 
     var query: String? {
-        return "startLocation=\(start)&endLocation=\(end)"
+        let query = "endLocation=\(end)"
+        guard let startCoordinate = startCoordinate else {
+            return query + "&startLocation=\(start)"
+        }
+        return query + "&startLocationLatitude=\(startCoordinate.latitude)&startLocationLongitude=\(startCoordinate.longitude)"
     }
 
     private let start: String
 
     private let end: String
 
-    init(start: String, end: String) {
+    private let startCoordinate: CLLocationCoordinate2D?
+
+    init(start: String, end: String, startCoordinate: CLLocationCoordinate2D? = nil) {
         self.start = start
         self.end = end
+        self.startCoordinate = startCoordinate
     }
+}
+
+extension RouteDownloadRequest: Encodable {
+
+    func encode(to encoder: Encoder) throws {}
 }

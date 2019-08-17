@@ -8,7 +8,7 @@ import CoreLocation.CLLocation
 
 internal struct DetailedLocation {
 
-    let displayName: String
+    let displayName: String?
 
     let location: CLLocationCoordinate2D
 }
@@ -21,7 +21,7 @@ extension DetailedLocation: Decodable {
 
     init(from decoder: Decoder) throws {
         let container = try decoder.container(keyedBy: CodingKeys.self)
-        displayName = try container.decode(String.self, forKey: .displayName)
+        displayName = try container.decodeIfPresent(String.self, forKey: .displayName)
         let locationContainer = try container.nestedContainer(keyedBy: CodingKeys.self, forKey: .location)
         let latitude = try locationContainer.decode(Double.self, forKey: .latitude)
         let longitude = try locationContainer.decode(Double.self, forKey: .longitude)

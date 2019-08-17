@@ -140,8 +140,7 @@ internal final class NavigationManager {
             startNavigation(route: route)
         case .navigation(let route, _):
             state = .preNavigation(route)
-            routeAnalyzer?.stop()
-            routeAnalyzer = nil
+            terminateNavigation()
         }
     }
 
@@ -153,11 +152,15 @@ internal final class NavigationManager {
             break
         case .preNavigation:
             state = .userLocationMarked(locationClient.currentLocation)
-            routeAnalyzer?.stop()
-            routeAnalyzer = nil
+            terminateNavigation()
         case .navigation(let route, _):
             state = .preNavigation(route)
         }
+    }
+
+    private func terminateNavigation() {
+        routeAnalyzer?.stop()
+        routeAnalyzer = nil
     }
 
     func markCurrentLocation() {
@@ -174,14 +177,25 @@ internal final class NavigationManager {
         })
     }
 
-    func downloadRoute() {
+    func downloadRoute(location: CLLocationCoordinate2D? = nil, rerouting: Bool = false) {
+        guard !startLocation.isEmpty && !endLocation.isEmpty else {
+            errorHandler("You have to input start and end location in order to search for routes.")
+            return
+        }
         loadingHandler(true)
-        let request = RouteDownloadRequest(start: startLocation, end: endLocation)
+        let request = RouteDownloadRequest(start: startLocation, end: endLocation, startCoordinate: location)
         networkClient.perform(request: request) { [weak self] result in
             self?.loadingHandler(false)
             switch result {
             case .success(let detailedRoute):
-                self?.state = .preNavigation(detailedRoute)
+                if rerouting {
+                    self?.routeDrawHandler(.clear)
+                    self?.terminateNavigation()
+                    self?.routeDrawHandler(.route(detailedRoute.routes))
+                    self?.startNavigation(route: detailedRoute)
+                } else {
+                    self?.state = .preNavigation(detailedRoute)
+                }
             case .error(let error):
                 print("Error: \(error)")
                 self?.errorHandler("No suitable route found from start to end location.")
@@ -205,9 +219,12 @@ internal final class NavigationManager {
             case let .offRoute(style, location, region):
                 self.locationChangeHandler(.aligned(location), self.routeAnalyzer?.currentSegment)
                 self.regionChangeHandler(region)
-                guard style == .hard else { return }
-                // handle off navigated route
-                self.guidanceChangeHandler(.rerouting)
+                if style == .hard {
+                    self.guidanceChangeHandler(.getBack)
+                } else if style == .shouldReroute {
+                    self.guidanceChangeHandler(.rerouting)
+                    self.downloadRoute(location: self.locationClient.currentLocation, rerouting: true)
+                }
             }
         }
         routeAnalyzer?.start()

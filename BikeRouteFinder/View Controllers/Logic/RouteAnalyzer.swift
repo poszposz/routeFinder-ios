@@ -8,6 +8,15 @@ import CoreLocation
 
 internal final class RouteAnalyzer {
 
+    private enum RouteAnalysisContants {
+        static let routeAnalysisStepInterval: Double = 1
+        static let startingReachRadius: Double = 30
+        static let turnHeadingDifference: Double = 60
+        static let routeAlignmentMaximumDistance: Double = 30
+        static let softOffRouteAlignmentMaximumDistance: Double = 50
+        static let rerouteDistance: Double = 200
+    }
+
     private enum RouteEvent {
         case reachedStart, reachedEnd, moved
     }
@@ -34,7 +43,7 @@ internal final class RouteAnalyzer {
     }
 
     func start() {
-        analysisTimer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(analyze), userInfo: nil, repeats: true)
+        analysisTimer = Timer.scheduledTimer(timeInterval: RouteAnalysisContants.routeAnalysisStepInterval, target: self, selector: #selector(analyze), userInfo: nil, repeats: true)
         analysisTimer?.fire()
     }
 
@@ -58,14 +67,17 @@ internal final class RouteAnalyzer {
             let location = nearestAlignedLocation()
             let distance = location.distanceTo(locationClient.currentLocation)
             let guidance: NavigationGuidance
-            if distance <= 50 {
+            if distance <= RouteAnalysisContants.routeAlignmentMaximumDistance {
                 currentState = .navigating(location, location.navigationRegion)
                 guidance = nearestGuidance()
-            } else if distance > 100 && distance < 200  {
+            } else if distance > RouteAnalysisContants.routeAlignmentMaximumDistance && distance < RouteAnalysisContants.softOffRouteAlignmentMaximumDistance  {
                 currentState = .offRoute(.soft, location, location.navigationRegion)
                 guidance = nearestGuidance()
-            } else {
+            } else if distance >= RouteAnalysisContants.softOffRouteAlignmentMaximumDistance && distance < RouteAnalysisContants.rerouteDistance {
                 currentState = .offRoute(.hard, locationClient.currentLocation, locationClient.currentLocation.navigationRegion)
+                guidance = .rerouting
+            } else {
+                currentState = .offRoute(.shouldReroute, locationClient.currentLocation, locationClient.currentLocation.navigationRegion)
                 guidance = .rerouting
             }
             routeAnalysisHandler(currentState, guidance)
@@ -77,7 +89,7 @@ internal final class RouteAnalyzer {
     private func handleReachingStart() -> Bool {
         let currentLocation = locationClient.currentLocation
         let filtered = route.routes.filter {
-            return $0.startPoint.distanceTo(currentLocation) < 10
+            return $0.startPoint.distanceTo(currentLocation) < RouteAnalysisContants.startingReachRadius
         }
         return !filtered.isEmpty
     }
@@ -139,10 +151,10 @@ internal final class RouteAnalyzer {
         for segment in nextSegments {
             distance = distance + segment.length;
             let headingDiff = currentSegment.heading - segment.heading
-            // Avoiding heading diff above or below 170 to overcome the bug with some reversed segments.
-            if headingDiff < -60 && headingDiff < 170 {
+            // Avoiding heading diff above or below 120 to overcome the bug with some reversed segments.
+            if headingDiff < -RouteAnalysisContants.turnHeadingDifference && headingDiff < 180 - RouteAnalysisContants.turnHeadingDifference {
                 return .turnRight(distance)
-            } else if headingDiff > 60 && headingDiff > -170 {
+            } else if headingDiff > RouteAnalysisContants.turnHeadingDifference && headingDiff > -180 + RouteAnalysisContants.turnHeadingDifference {
                 return .turnLeft(distance)
             }
         }

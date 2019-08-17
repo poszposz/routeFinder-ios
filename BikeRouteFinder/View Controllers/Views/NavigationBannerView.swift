@@ -60,8 +60,6 @@ internal final class NavigationBannerView: UIView {
     func loadGuidance(_ guidance: NavigationGuidance) {
         guideLabel.text = guidance.title
         navigationImage.image = guidance.icon
-        UIView.animate(withDuration: 0.2) {
-            self.navigationImage.isHidden = guidance.icon == nil
-        }
+        navigationImage.isHidden = guidance.icon == nil
     }
 }
