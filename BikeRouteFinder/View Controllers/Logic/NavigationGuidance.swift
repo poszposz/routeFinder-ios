@@ -15,6 +15,8 @@ enum NavigationGuidance {
 
 extension NavigationGuidance {
 
+    static let numberFormatter = LengthFormatter()
+
     var title: String {
         switch self {
         case .reachStart:
@@ -25,12 +27,12 @@ extension NavigationGuidance {
             return "Continue straight"
         case .rerouting:
             return "Rerouting"
-        case .turnLeft:
-            return "Turn left"
-        case .turnRight:
-            return "Turn right"
-        case .reachingEnd:
-            return "Reaching end"
+        case .turnLeft(let distance):
+            return "Turn left in \(NavigationGuidance.numberFormatter.string(fromMeters: Double(distance)))"
+        case .turnRight(let distance):
+            return "Turn right in \(NavigationGuidance.numberFormatter.string(fromMeters: Double(distance)))"
+        case .reachingEnd(let distance):
+            return "Reaching end in \(NavigationGuidance.numberFormatter.string(fromMeters: Double(distance)))"
         }
     }
 

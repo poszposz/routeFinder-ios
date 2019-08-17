@@ -27,6 +27,9 @@
 		380E1800230761FF00F791DB /* UIImage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 380E17FF230761FF00F791DB /* UIImage.swift */; };
 		380E18022307733E00F791DB /* Double.swift in Sources */ = {isa = PBXBuildFile; fileRef = 380E18012307733E00F791DB /* Double.swift */; };
 		380E180423078FF200F791DB /* jesionowa-karmelicka-granulated.gpx in Resources */ = {isa = PBXBuildFile; fileRef = 380E180323078FF100F791DB /* jesionowa-karmelicka-granulated.gpx */; };
+		380E1808230829E700F791DB /* GradientPolylineRenderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 380E1807230829E700F791DB /* GradientPolylineRenderer.swift */; };
+		380E180A2308338600F791DB /* MKMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 380E18092308338600F791DB /* MKMapView.swift */; };
+		380E180C230852D900F791DB /* DebugPolyline.swift in Sources */ = {isa = PBXBuildFile; fileRef = 380E180B230852D900F791DB /* DebugPolyline.swift */; };
 		382023F52302252000DB8C6C /* VertexDetailTableViewCell.swift in Sources */ = {isa = PBXBuildFile; fileRef = 382023F42302252000DB8C6C /* VertexDetailTableViewCell.swift */; };
 		382023F72302273300DB8C6C /* String.swift in Sources */ = {isa = PBXBuildFile; fileRef = 382023F62302273300DB8C6C /* String.swift */; };
 		3836A4ED210E3459008E51AA /* Segment.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3836A4EC210E3459008E51AA /* Segment.swift */; };
@@ -89,6 +92,9 @@
 		380E17FF230761FF00F791DB /* UIImage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIImage.swift; sourceTree = "<group>"; };
 		380E18012307733E00F791DB /* Double.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Double.swift; sourceTree = "<group>"; };
 		380E180323078FF100F791DB /* jesionowa-karmelicka-granulated.gpx */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.xml; path = "jesionowa-karmelicka-granulated.gpx"; sourceTree = "<group>"; };
+		380E1807230829E700F791DB /* GradientPolylineRenderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GradientPolylineRenderer.swift; sourceTree = "<group>"; };
+		380E18092308338600F791DB /* MKMapView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MKMapView.swift; sourceTree = "<group>"; };
+		380E180B230852D900F791DB /* DebugPolyline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebugPolyline.swift; sourceTree = "<group>"; };
 		382023F42302252000DB8C6C /* VertexDetailTableViewCell.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VertexDetailTableViewCell.swift; sourceTree = "<group>"; };
 		382023F62302273300DB8C6C /* String.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = String.swift; sourceTree = "<group>"; };
 		3836A4EC210E3459008E51AA /* Segment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Segment.swift; sourceTree = "<group>"; };
@@ -157,6 +163,8 @@
 				380E17D823058C8F00F791DB /* RoutePolyline.swift */,
 				380E17DA23058CE400F791DB /* ReachPolyline.swift */,
 				380E17FD2307600200F791DB /* CyclistAnnotation.swift */,
+				380E1807230829E700F791DB /* GradientPolylineRenderer.swift */,
+				380E180B230852D900F791DB /* DebugPolyline.swift */,
 			);
 			path = Overlays;
 			sourceTree = "<group>";
@@ -244,6 +252,7 @@
 				382023F62302273300DB8C6C /* String.swift */,
 				380E17FF230761FF00F791DB /* UIImage.swift */,
 				380E18012307733E00F791DB /* Double.swift */,
+				380E18092308338600F791DB /* MKMapView.swift */,
 			);
 			path = Extensions;
 			sourceTree = "<group>";
@@ -424,6 +433,7 @@
 				3865584C23002B850032DE02 /* PaddingTextField.swift in Sources */,
 				38F21DBD20E7BF28000D07C9 /* MapViewController.swift in Sources */,
 				380E17FE2307600200F791DB /* CyclistAnnotation.swift in Sources */,
+				380E180C230852D900F791DB /* DebugPolyline.swift in Sources */,
 				3836A4EF210E3462008E51AA /* Route.swift in Sources */,
 				380E17F42307251800F791DB /* RouteAnalyzer.swift in Sources */,
 				3836A504210E5493008E51AA /* RouteRequest.swift in Sources */,
@@ -446,6 +456,7 @@
 				387829C622F4D50F00BB1A8D /* Graph.swift in Sources */,
 				380E1800230761FF00F791DB /* UIImage.swift in Sources */,
 				382023F52302252000DB8C6C /* VertexDetailTableViewCell.swift in Sources */,
+				380E180A2308338600F791DB /* MKMapView.swift in Sources */,
 				380E17DB23058CE400F791DB /* ReachPolyline.swift in Sources */,
 				387829C422F4D4ED00BB1A8D /* Vertex.swift in Sources */,
 				3836A4F3210E4F43008E51AA /* CLLocationCoordinate2D.swift in Sources */,
@@ -453,6 +464,7 @@
 				3836A502210E52B7008E51AA /* RequestError.swift in Sources */,
 				38F21DBB20E7BF28000D07C9 /* AppDelegate.swift in Sources */,
 				380E17FA230756BA00F791DB /* LocationType.swift in Sources */,
+				380E1808230829E700F791DB /* GradientPolylineRenderer.swift in Sources */,
 				3836A4FB210E511E008E51AA /* NetworkClient.swift in Sources */,
 				3836A500210E5216008E51AA /* Result.swift in Sources */,
 				380E17D02304A1D000F791DB /* LocationClient.swift in Sources */,

@@ -26,13 +26,30 @@ internal final class MapView: UIView {
     var region: MKCoordinateRegion? {
         didSet {
             guard let region = region else { return }
-            mapView.setRegion(region, animated: true)
+            mapView.animatedZoom(zoomRegion: region, duration: 1.0)
+        }
+    }
+
+    var debugSegmentOverlay: DebugPolyline?
+
+    var debugSegment: Segment? {
+        didSet {
+            if let debugSegmentOverlay = debugSegmentOverlay {
+                mapView.remove(debugSegmentOverlay)
+            }
+            guard let debugSegment = debugSegment else {
+                return
+            }
+            let debugOverlay = DebugPolyline(coordinates: [debugSegment.start, debugSegment.end], count: 2)
+            debugOverlay.color = .green
+            mapView.add(debugOverlay)
+            debugSegmentOverlay = debugOverlay
         }
     }
 
     var showsUserLocation: Bool = true {
         didSet {
-            mapView.showsUserLocation = showsUserLocation
+//            mapView.showsUserLocation = showsUserLocation
         }
     }
 
@@ -43,7 +60,7 @@ internal final class MapView: UIView {
             if !contains {
                 mapView.addAnnotation(cyclistAnnotation)
             }
-            UIView.animate(withDuration: 0.5, animations: {
+            UIView.animate(withDuration: 1.0, animations: {
                 self.cyclistAnnotation.coordinate = alignedLocation
             }) { _ in
                 UIView.animate(withDuration: 0.2, animations: {
@@ -61,8 +78,6 @@ internal final class MapView: UIView {
     var vertexTapHandler: ((Vertex) -> ())?
 
     private var vertices: [Vertex]?
-
-    private var drawnRoutes = [Route]()
 
     private var isUserLocationSet = false
 
@@ -95,7 +110,6 @@ internal final class MapView: UIView {
     }
 
     func clear() {
-        drawnRoutes.removeAll()
         mapView.removeOverlays(mapView.overlays)
         mapView.removeAnnotations(mapView.annotations)
     }
@@ -104,32 +118,25 @@ internal final class MapView: UIView {
         routes.enumerated().forEach {
             draw(route: $1)
         }
-        routes.filter { $0.category != "link" }.forEach { [weak self] route in
-            let start = MKPointAnnotation()
-            start.coordinate = route.startPoint
-            start.title = "Start"
-
-            let end = MKPointAnnotation()
-            end.coordinate = route.endPoint
-            end.title = "End"
-
-            self?.mapView.addAnnotations([start, end])
-        }
     }
 
     private func draw(route: Route) {
-        guard !drawnRoutes.contains(route) else { return }
-        drawnRoutes.append(route)
-        draw(segments: route.segments, color: .blue)
+        draw(segments: route.segments, color: route.category == "link" ? .red : .blue)
     }
 
     private func draw(segments: [Segment], color: UIColor) {
-        let coordinateGroups = segments.map { [$0.start, $0.end] }
-        coordinateGroups.forEach {
-            let route = RoutePolyline(coordinates: $0, count: 2)
-            route.color = color
-            mapView.add(route)
-        }
+        let coordinates = segments.map { [$0.start, $0.end] }.flatMap { $0 }
+        let route = RoutePolyline(coordinates: coordinates, count: coordinates.count)
+        route.color = color
+        mapView.add(route)
+
+        // Uncomment to distinguish segments on map
+//        let coordinateGroups = segments.map { [$0.start, $0.end] }
+//        coordinateGroups.forEach {
+//            let route = RoutePolyline(coordinates: $0, count: 2)
+//            route.color = color
+//            mapView.add(route)
+//        }
     }
 
     private func drawReach(segments: [Segment], color: UIColor) {
@@ -151,6 +158,11 @@ extension MapView: MKMapViewDelegate {
             renderer.strokeColor = overlay.color
             renderer.lineWidth = 2
             return renderer
+
+//            let gradientColors = [UIColor.green, UIColor.red]
+//            let polylineRenderer = GradientPathRenderer(polyline: overlay, colors: gradientColors)
+//            polylineRenderer.lineWidth = 7
+//            return polylineRenderer
         }
         if let overlay = overlay as? ReachPolyline {
             let renderer = MKPolylineRenderer(overlay: overlay)
@@ -158,6 +170,13 @@ extension MapView: MKMapViewDelegate {
             renderer.strokeColor = overlay.color
             renderer.lineDashPattern = [NSNumber(integerLiteral: 5), NSNumber(integerLiteral: 5)]
             renderer.lineWidth = 2
+            return renderer
+        }
+        if let overlay = overlay as? DebugPolyline {
+            let renderer = MKPolylineRenderer(overlay: overlay)
+            renderer.fillColor = overlay.color
+            renderer.strokeColor = overlay.color
+            renderer.lineWidth = 3
             return renderer
         }
         return MKPolylineRenderer(overlay: overlay)

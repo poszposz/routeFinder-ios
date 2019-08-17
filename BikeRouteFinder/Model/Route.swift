@@ -75,3 +75,10 @@ extension Route: Decodable {
         endPointVertexId = try container.decode(Int.self, forKey: .endPointVertexId)
     }
 }
+
+extension Route {
+
+    var heading: Double {
+        return startPoint.heading(towards: endPoint)
+    }
+}

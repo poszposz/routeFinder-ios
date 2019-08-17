@@ -81,7 +81,7 @@ internal final class NavigationManager {
 
     let regionChangeHandler: (MKCoordinateRegion) -> ()
 
-    let locationChangeHandler: (LocationType) -> ()
+    let locationChangeHandler: (LocationType, Segment?) -> ()
 
     let headingChangeHandler: (CLLocationDirection) -> ()
 
@@ -99,7 +99,7 @@ internal final class NavigationManager {
 
     init(
         regionChangeHandler: @escaping (MKCoordinateRegion) -> (),
-        locationChangeHandler: @escaping (LocationType) -> (),
+        locationChangeHandler: @escaping (LocationType, Segment?) -> (),
         headingChangeHandler: @escaping (CLLocationDirection) -> (),
         routeDrawHandler: @escaping (RouteDrawing) -> (),
         interfaceChangeHandler: @escaping (InterfaceState) -> (),
@@ -195,15 +195,15 @@ internal final class NavigationManager {
             self.guidanceChangeHandler(guidance)
             switch state {
             case .navigatingToStartPoint:
-                self.locationChangeHandler(.standard)
+                self.locationChangeHandler(.standard, self.routeAnalyzer?.currentSegment)
                 self.regionChangeHandler(route.reachStartRegion)
             case .navigatingToEndPoint:
                 self.regionChangeHandler(route.reachEndRegion)
             case let .navigating(location, region):
-                self.locationChangeHandler(.aligned(location))
+                self.locationChangeHandler(.aligned(location), self.routeAnalyzer?.currentSegment)
                 self.regionChangeHandler(region)
             case let .offRoute(style, location, region):
-                self.locationChangeHandler(.aligned(location))
+                self.locationChangeHandler(.aligned(location), self.routeAnalyzer?.currentSegment)
                 self.regionChangeHandler(region)
                 guard style == .hard else { return }
                 // handle off navigated route

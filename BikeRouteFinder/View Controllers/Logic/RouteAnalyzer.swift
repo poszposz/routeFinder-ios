@@ -12,9 +12,9 @@ internal final class RouteAnalyzer {
         case reachedStart, reachedEnd, moved
     }
 
-    private var analysisTimer: Timer?
+    var currentSegment: Segment?
 
-    private var currentSegment: Segment?
+    private var analysisTimer: Timer?
 
     private var currentRoute: Route?
 
@@ -34,7 +34,7 @@ internal final class RouteAnalyzer {
     }
 
     func start() {
-        analysisTimer = Timer.scheduledTimer(timeInterval: 0.5, target: self, selector: #selector(analyze), userInfo: nil, repeats: true)
+        analysisTimer = Timer.scheduledTimer(timeInterval: 1, target: self, selector: #selector(analyze), userInfo: nil, repeats: true)
         analysisTimer?.fire()
     }
 
@@ -77,21 +77,21 @@ internal final class RouteAnalyzer {
     private func handleReachingStart() -> Bool {
         let currentLocation = locationClient.currentLocation
         let filtered = route.routes.filter {
-            return $0.startPoint.distanceTo(currentLocation) < 30
+            return $0.startPoint.distanceTo(currentLocation) < 10
         }
         return !filtered.isEmpty
     }
 
     private func nearestAlignedLocation() -> CLLocationCoordinate2D {
         let currentLocation = locationClient.currentLocation
-        let sortedRoutes = route.routes.sorted { route1, route2 in
+        let sortedRoutes = route.routes.sorted { route1, route2 -> Bool in
             let firstLocationToStart = route1.startPoint.distanceTo(currentLocation)
             let firstLocationToEnd = route1.endPoint.distanceTo(currentLocation)
             let secondLocationToStart = route2.startPoint.distanceTo(currentLocation)
             let secondLocationToEnd = route2.endPoint.distanceTo(currentLocation)
-            let nearestFirst = min(firstLocationToStart, firstLocationToEnd)
-            let nearestSecond = min(secondLocationToStart, secondLocationToEnd)
-            return nearestFirst < nearestSecond
+            let firstRouteWeight = (firstLocationToStart + firstLocationToEnd) / Double(route1.length)
+            let secondRouteWeight = (secondLocationToStart + secondLocationToEnd) / Double(route2.length)
+            return firstRouteWeight < secondRouteWeight
         }
         guard let firstRoute = sortedRoutes.first else { return route.startLocation.location }
         currentRoute = firstRoute
@@ -100,9 +100,9 @@ internal final class RouteAnalyzer {
             let firstLocationToEnd = segment1.end.distanceTo(currentLocation)
             let secondLocationToStart = segment2.start.distanceTo(currentLocation)
             let secondLocationToEnd = segment2.end.distanceTo(currentLocation)
-            let nearestFirst = min(firstLocationToStart, firstLocationToEnd)
-            let nearestSecond = min(secondLocationToStart, secondLocationToEnd)
-            return nearestFirst < nearestSecond
+            let firstSegmentWeight = firstLocationToStart + firstLocationToEnd
+            let secondSegmentWeight = secondLocationToStart + secondLocationToEnd
+            return firstSegmentWeight < secondSegmentWeight
         }
         guard let firstSegment = sortedSegments.first else { return firstRoute.startPoint }
         currentSegment = firstSegment
@@ -139,7 +139,6 @@ internal final class RouteAnalyzer {
         for segment in nextSegments {
             distance = distance + segment.length;
             let headingDiff = currentSegment.heading - segment.heading
-            print("Heading diff: \(headingDiff)")
             // Avoiding heading diff above or below 170 to overcome the bug with some reversed segments.
             if headingDiff < -60 && headingDiff < 170 {
                 return .turnRight(distance)

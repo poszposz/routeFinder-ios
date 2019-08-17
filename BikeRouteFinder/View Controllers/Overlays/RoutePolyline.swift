@@ -9,4 +9,6 @@ import MapKit
 internal final class RoutePolyline: MKPolyline {
 
     var color: UIColor?
+
+    var width: Int?
 }

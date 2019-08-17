@@ -22,6 +22,7 @@ internal final class LocationClient: NSObject {
 
     private lazy var locationManager: CLLocationManager = {
         let locationManager = CLLocationManager()
+        locationManager.desiredAccuracy = kCLLocationAccuracyBest
         locationManager.delegate = self
         return locationManager
     }()

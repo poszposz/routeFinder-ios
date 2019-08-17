@@ -64,20 +64,7 @@ extension Segment: Decodable {
 extension Segment {
 
     var heading: Double {
-
-        let startLatitude = start.latitude.radians
-        let startLongitude = start.longitude.radians
-
-        let endLatitude = end.latitude.radians
-        let endLongitude = end.longitude.radians
-
-        let longitudeDiff = endLongitude - startLongitude
-
-        let y = sin(longitudeDiff) * cos(endLatitude)
-        let x = cos(startLatitude) * sin(endLatitude) - sin(startLatitude) * cos(endLatitude) * cos(longitudeDiff)
-        let radiansBearing = atan2(y, x)
-
-        return radiansBearing.degrees
+        return start.heading(towards: end)
     }
 }
 

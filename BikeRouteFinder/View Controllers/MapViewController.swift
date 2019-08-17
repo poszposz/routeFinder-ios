@@ -84,8 +84,9 @@ class MapViewController: UIViewController {
         self.mapView.region = region
     }
 
-    private lazy var locationChangeHandler: (LocationType) -> () = { [weak self] location in
+    private lazy var locationChangeHandler: (LocationType, Segment?) -> () = { [weak self] location, segment in
         guard let self = self else { return }
+        self.mapView.debugSegment = segment
         switch location {
         case .aligned(let location):
             self.mapView.showsUserLocation = false

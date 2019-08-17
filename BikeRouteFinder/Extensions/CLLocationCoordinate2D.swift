@@ -37,6 +37,22 @@ extension CLLocationCoordinate2D {
         return location1.distance(from: location2)
     }
 
+    func heading(towards location: CLLocationCoordinate2D) -> Double {
+        let startLatitude = self.latitude.radians
+        let startLongitude = self.longitude.radians
+
+        let endLatitude = location.latitude.radians
+        let endLongitude = location.longitude.radians
+
+        let longitudeDiff = endLongitude - startLongitude
+
+        let y = sin(longitudeDiff) * cos(endLatitude)
+        let x = cos(startLatitude) * sin(endLatitude) - sin(startLatitude) * cos(endLatitude) * cos(longitudeDiff)
+        let radiansBearing = atan2(y, x)
+
+        return radiansBearing.degrees
+    }
+
     static var krakowLocation: CLLocationCoordinate2D {
         return CLLocationCoordinate2D(latitude: 50.062004, longitude: 19.937522)
     }
