@@ -71,7 +71,7 @@ internal final class NavigationManager {
 
     let locationClient = LocationClient()
 
-    private lazy var networkClient = DefaultNetworkClient(requestBuilder: DefaultRequestBuilder(scheme: .http, host: "172.19.54.69", port: 3001))
+    private lazy var networkClient = DefaultNetworkClient(requestBuilder: DefaultRequestBuilder(scheme: .http, host: "104.248.25.229", port: 3001))
 
     private lazy var geocoder = LocationDecoder()
 
